@@ -1,0 +1,7 @@
+<Addon Name="HawtBattleText" Version="1.0.0" Author="HawtChocolate" APIVersion="9" Description="">
+    <Script Name="HawtBattleText.lua"/>
+    <Script Name="FloatTextPanel.lua"/>
+    <Form Name="TestFloatTextForms.xml"/>
+    <Form Name="FloatTextPanel.xml"/>
+    <ReplaceAddon Name="FloatText"/>
+</Addon>
