@@ -3,70 +3,33 @@
 -- Copyright (c) NCsoft. All rights reserved
 -----------------------------------------------------------------------------------------------
 
------------------------------------------------------------------------------------------------
--- HawtBattleText for WildStar
--- ADD CONTACT INFO
------------------------------------------------------------------------------------------------
-
 require "Window"
 require "Spell"
 require "CombatFloater"
 require "GameLib"
 require "Unit"
 
-local HawtBattleText = 
-{
-	userPreferences =
-	{
-		--Colors
-		zsDmgIncColor = 0xCF5300,
-		zsDmgCritIncColor = 0xCC0000,
-		zsDmgShieldIncColor = 0x0000FF,
-		zsDmgDeltColor = 0xCC66FF,
-		zsDmgCritDeltColor = 0xCC0000,
-		zsDmgShieldDeltColor = 1,
-		zsHealIncColor = 0x00CC00,
-		zsDmgIncColor_Out = 0xD46419,
-		zsDmgCritIncColor_Out = 0xD63333,
-		zsDmgShieldIncColor_Out = 0x6666FF,
-		zsDmgDeltColor_Out = 0xCC9900,
-		zsDmgCritDeltColor_Out = 0xD63333,
-		zsDmgShieldDeltColor_Out = 1,
-		zsHealIncColor_Out = 0x4DDB4D,
-		zsCritDisplaySpeed = 1,
-		zsDmgDisplaySpeed = 1
-	}
-}
+local HawtScrollingBattleText = {}
 
 local knTestingVulnerable = -1
 
-function HawtBattleText:new(o)
+function HawtScrollingBattleText:new(o)
 	o = o or {}
 	setmetatable(o, self)
 	self.__index = self
 	return o
 end
 
-function HawtBattleText:Init()
+function HawtScrollingBattleText:Init()
 	Apollo.RegisterAddon(self)
 end
 
-function HawtBattleText:OnLoad() -- OnLoad then GetAsyncLoad then OnRestore
+function HawtScrollingBattleText:OnLoad() -- OnLoad then GetAsyncLoad then OnRestore
 	Apollo.RegisterEventHandler("OptionsUpdated_Floaters", 					"OnOptionsUpdated", self)
 	Apollo.RegisterEventHandler("InterfaceOptionsLoaded", 					"Initialize", self)
-	--Load Settings Root Document For User
-	Apollo.RegisterSlashCommand("zsbt", "OnHawtBattleTextOn", self)
-	self.xmlDoc = XmlDoc.CreateFromFile("SettingsRootPanel.xml")
-	--self.xmlDoc:RegisterCallback("OnDocLoaded", self)
-
 end
 
-function HawtBattleText:OnHawtBattleTextOn()
-	self.wndMain = Apollo.LoadForm(self.xmlDoc, "SettingsRoot", nil, self)
-	self.wndMain:Show(true)
-end
-
-function HawtBattleText:Initialize()
+function HawtScrollingBattleText:Initialize()
 	Apollo.RegisterEventHandler("LootedMoney", 								"OnLootedMoney", self)
 	Apollo.RegisterEventHandler("SpellCastFailed", 							"OnSpellCastFailed", self)
 	Apollo.RegisterEventHandler("DamageOrHealingDone",				 		"OnDamageOrHealing", self)
@@ -122,11 +85,11 @@ function HawtBattleText:Initialize()
 	self.bSpellErrorMessages = g_InterfaceOptions.Carbine.bSpellErrorMessages
 end
 
-function HawtBattleText:OnOptionsUpdated()
+function HawtScrollingBattleText:OnOptionsUpdated()
 	self.bSpellErrorMessages = g_InterfaceOptions.Carbine.bSpellErrorMessages
 end
 
-function HawtBattleText:GetDefaultTextOption()
+function HawtScrollingBattleText:GetDefaultTextOption()
 	local tTextOption =
 	{
 		strFontFace 				= "CRB_FloaterLarge",
@@ -160,7 +123,7 @@ function HawtBattleText:GetDefaultTextOption()
 end
 
 ---------------------------------------------------------------------------------------------------
-function HawtBattleText:OnSpellCastFailed( eMessageType, eCastResult, unitTarget, unitSource, strMessage )
+function HawtScrollingBattleText:OnSpellCastFailed( eMessageType, eCastResult, unitTarget, unitSource, strMessage )
 	if unitTarget == nil or not Apollo.GetConsoleVariable("ui.showCombatFloater") then
 		return
 	end
@@ -186,7 +149,7 @@ function HawtBattleText:OnSpellCastFailed( eMessageType, eCastResult, unitTarget
 end
 
 ---------------------------------------------------------------------------------------------------
-function HawtBattleText:OnSubZoneChanged(idZone, strZoneName)
+function HawtScrollingBattleText:OnSubZoneChanged(idZone, strZoneName)
 	-- if you're in a taxi, don't show zone change
 	if GameLib.GetPlayerTaxiUnit() then
 		return
@@ -210,7 +173,7 @@ function HawtBattleText:OnSubZoneChanged(idZone, strZoneName)
 end
 
 ---------------------------------------------------------------------------------------------------
-function HawtBattleText:OnRealmBroadcastTierMedium(strMessage)
+function HawtScrollingBattleText:OnRealmBroadcastTierMedium(strMessage)
 	local tTextOption = self:GetDefaultTextOption()
 	tTextOption.bUseScreenPos = true
 	tTextOption.fOffset = -180
@@ -229,13 +192,13 @@ function HawtBattleText:OnRealmBroadcastTierMedium(strMessage)
 end
 
 ---------------------------------------------------------------------------------------------------
-function HawtBattleText:OnActionBarNonSpellShortcutAddFailed()
-	local strMessage = Apollo.GetString("FloatText_ActionBarAddFail")
+function HawtScrollingBattleText:OnActionBarNonSpellShortcutAddFailed()
+	local strMessage = Apollo.GetString("HawtScrollingBattleText_ActionBarAddFail")
 	self:OnSpellCastFailed( LuaEnumMessageType.GenericPlayerInvokedError, nil, GameLib.GetControlledUnit(), GameLib.GetControlledUnit(), strMessage )
 end
 
 ---------------------------------------------------------------------------------------------------
-function HawtBattleText:OnGenericError(eError, strMessage)
+function HawtScrollingBattleText:OnGenericError(eError, strMessage)
 	local arExciseListItem =  -- index is enums to respond to, value is optional (UNLOCALIZED) replacement string (otherwise the passed string is used)
 	{
 		[GameLib.CodeEnumGenericError.DbFailure] 						= "",
@@ -271,12 +234,12 @@ function HawtBattleText:OnGenericError(eError, strMessage)
 end
 
 ---------------------------------------------------------------------------------------------------
-function HawtBattleText:OnPrereqFailed(strMessage)
+function HawtScrollingBattleText:OnPrereqFailed(strMessage)
 	self:OnGenericError(nil, strMessage)
 end
 
 ---------------------------------------------------------------------------------------------------
-function HawtBattleText:OnGenericFloater(unitTarget, strMessage)
+function HawtScrollingBattleText:OnGenericFloater(unitTarget, strMessage)
 	-- modify the text to be shown
 	local tTextOption = self:GetDefaultTextOption()
 	tTextOption.fDuration = 2
@@ -289,7 +252,7 @@ function HawtBattleText:OnGenericFloater(unitTarget, strMessage)
 	CombatFloater.ShowTextFloater( unitTarget, strMessage, tTextOption )
 end
 
-function HawtBattleText:OnUnitEvaded(unitSource, unitTarget, eReason, strMessage)
+function HawtScrollingBattleText:OnUnitEvaded(unitSource, unitTarget, eReason, strMessage)
 	local tTextOption = self:GetDefaultTextOption()
 	tTextOption.fScale = 1.0
 	tTextOption.fDuration = 2
@@ -312,7 +275,7 @@ function HawtBattleText:OnUnitEvaded(unitSource, unitTarget, eReason, strMessage
 end
 
 ---------------------------------------------------------------------------------------------------
-function HawtBattleText:OnAlertTitle(strMessage)
+function HawtScrollingBattleText:OnAlertTitle(strMessage)
 	local tTextOption = self:GetDefaultTextOption()
 	tTextOption.fDuration = 2
 	tTextOption.fFadeInDuration = 0.2
@@ -329,7 +292,7 @@ function HawtBattleText:OnAlertTitle(strMessage)
 end
 
 ---------------------------------------------------------------------------------------------------
-function HawtBattleText:OnQuestShareFloater(unitTarget, strMessage)
+function HawtScrollingBattleText:OnQuestShareFloater(unitTarget, strMessage)
 	local tTextOption = self:GetDefaultTextOption()
 	tTextOption.fDuration = 2
 	tTextOption.fFadeInDuration = 0.2
@@ -346,7 +309,7 @@ function HawtBattleText:OnQuestShareFloater(unitTarget, strMessage)
 end
 
 ---------------------------------------------------------------------------------------------------
-function HawtBattleText:OnCountdownTick(strMessage)
+function HawtScrollingBattleText:OnCountdownTick(strMessage)
 	local tTextOption = self:GetDefaultTextOption()
 	tTextOption.fDuration = 1
 	tTextOption.fFadeInDuration = 0.2
@@ -363,7 +326,7 @@ function HawtBattleText:OnCountdownTick(strMessage)
 end
 
 ---------------------------------------------------------------------------------------------------
-function HawtBattleText:OnDeath()
+function HawtScrollingBattleText:OnDeath()
 	local tTextOption = self:GetDefaultTextOption()
 	tTextOption.fDuration = 2
 	tTextOption.fFadeOutDuration = 1.5
@@ -378,7 +341,7 @@ function HawtBattleText:OnDeath()
 end
 
 ---------------------------------------------------------------------------------------------------
-function HawtBattleText:OnCombatLogTransference(tEventArgs)
+function HawtScrollingBattleText:OnCombatLogTransference(tEventArgs)
 	local bCritical = tEventArgs.eCombatResult == GameLib.CodeEnumCombatResult.Critical
 	if tEventArgs.unitCaster == GameLib.GetControlledUnit() then -- Target does the transference to the source
 		self:OnDamageOrHealing( tEventArgs.unitCaster, tEventArgs.unitTarget, tEventArgs.eDamageType, math.abs(tEventArgs.nDamageAmount), 0, 0, bCritical )
@@ -397,16 +360,16 @@ function HawtBattleText:OnCombatLogTransference(tEventArgs)
 end
 
 ---------------------------------------------------------------------------------------------------
-function HawtBattleText:OnCombatMomentum( eMomentumType, nCount, strText )
+function HawtScrollingBattleText:OnCombatMomentum( eMomentumType, nCount, strText )
 	-- Passes: type enum, player's total count for that bonus type, string combines these things (ie. "3 Evade")
 	local arMomentumStrings =
 	{
-		[CombatFloater.CodeEnumCombatMomentum.Impulse] 				= "FloatText_Impulse",
-		[CombatFloater.CodeEnumCombatMomentum.KillingPerformance] 	= "FloatText_KillPerformance",
-		[CombatFloater.CodeEnumCombatMomentum.KillChain] 			= "FloatText_KillChain",
-		[CombatFloater.CodeEnumCombatMomentum.Evade] 				= "FloatText_Evade",
-		[CombatFloater.CodeEnumCombatMomentum.Interrupt] 			= "FloatText_Interrupt",
-		[CombatFloater.CodeEnumCombatMomentum.CCBreak] 				= "FloatText_StateBreak",
+		[CombatFloater.CodeEnumCombatMomentum.Impulse] 				= "HawtScrollingBattleText_Impulse",
+		[CombatFloater.CodeEnumCombatMomentum.KillingPerformance] 	= "HawtScrollingBattleText_KillPerformance",
+		[CombatFloater.CodeEnumCombatMomentum.KillChain] 			= "HawtScrollingBattleText_KillChain",
+		[CombatFloater.CodeEnumCombatMomentum.Evade] 				= "HawtScrollingBattleText_Evade",
+		[CombatFloater.CodeEnumCombatMomentum.Interrupt] 			= "HawtScrollingBattleText_Interrupt",
+		[CombatFloater.CodeEnumCombatMomentum.CCBreak] 				= "HawtScrollingBattleText_StateBreak",
 	}
 
 	if not Apollo.GetConsoleVariable("ui.showCombatFloater") or arMomentumStrings[eMomentumType] == nil  then
@@ -435,13 +398,13 @@ function HawtBattleText:OnCombatMomentum( eMomentumType, nCount, strText )
 	local unitToAttachTo = GameLib.GetControlledUnit()
 	local strMessage = String_GetWeaselString(Apollo.GetString(arMomentumStrings[eMomentumType]), nCount)
 	if eMomentumType == CombatFloater.CodeEnumCombatMomentum.KillChain and nCount == 2 then
-		strMessage = Apollo.GetString("FloatText_DoubleKill")
+		strMessage = Apollo.GetString("HawtScrollingBattleText_DoubleKill")
 		tTextOption.strFontFace = "CRB_FloaterMedium"
 	elseif eMomentumType == CombatFloater.CodeEnumCombatMomentum.KillChain and nCount == 3 then
-		strMessage = Apollo.GetString("FloatText_TripleKill")
+		strMessage = Apollo.GetString("HawtScrollingBattleText_TripleKill")
 		tTextOption.strFontFace = "CRB_FloaterMedium"
 	elseif eMomentumType == CombatFloater.CodeEnumCombatMomentum.KillChain and nCount == 5 then
-		strMessage = Apollo.GetString("FloatText_PentaKill")
+		strMessage = Apollo.GetString("HawtScrollingBattleText_PentaKill")
 		tTextOption.strFontFace = "CRB_FloaterHuge"
 	elseif eMomentumType == CombatFloater.CodeEnumCombatMomentum.KillChain and nCount > 5 then
 		tTextOption.strFontFace = "CRB_FloaterHuge"
@@ -450,7 +413,7 @@ function HawtBattleText:OnCombatMomentum( eMomentumType, nCount, strText )
 	CombatFloater.ShowTextFloater(unitToAttachTo, strMessage, tTextOption)
 end
 
-function HawtBattleText:OnExperienceGained(eReason, unitTarget, strText, fDelay, nAmount)
+function HawtScrollingBattleText:OnExperienceGained(eReason, unitTarget, strText, fDelay, nAmount)
 	if not Apollo.GetConsoleVariable("ui.showCombatFloater") or nAmount < 0 then
 		return
 	end
@@ -487,18 +450,18 @@ function HawtBattleText:OnExperienceGained(eReason, unitTarget, strText, fDelay,
 		return -- should not be delivered via the XP event
 	elseif eReason == CombatFloater.CodeEnumExpReason.Rested then
 		tTextOption.eCollisionMode = CombatFloater.CodeEnumFloaterCollisionMode.Vertical
-		strFormatted = String_GetWeaselString(Apollo.GetString("FloatText_RestXPGained"), nAmount)
+		strFormatted = String_GetWeaselString(Apollo.GetString("HawtScrollingBattleText_RestXPGained"), nAmount)
 		tContent.nRested = nAmount
 	else
 		tTextOption.eCollisionMode = CombatFloater.CodeEnumFloaterCollisionMode.Vertical
-		strFormatted = String_GetWeaselString(Apollo.GetString("FloatText_XPGained"), nAmount)
+		strFormatted = String_GetWeaselString(Apollo.GetString("HawtScrollingBattleText_XPGained"), nAmount)
 		tContent.nNormal = nAmount
 	end
 
 	self:RequestShowTextFloater(eMessageType, unitToAttachTo, strFormatted, tTextOption, fDelay, tContent)
 end
 
-function HawtBattleText:OnElderPointsGained(nAmount)
+function HawtScrollingBattleText:OnElderPointsGained(nAmount)
 	if not Apollo.GetConsoleVariable("ui.showCombatFloater") or nAmount < 0 then
 		return
 	end
@@ -528,19 +491,19 @@ function HawtBattleText:OnElderPointsGained(nAmount)
 
 	local eMessageType = LuaEnumMessageType.XPAwarded
 	local unitToAttachTo = GameLib.GetControlledUnit()
-	local strFormatted = String_GetWeaselString(Apollo.GetString("FloatText_EPGained"), nAmount)
+	local strFormatted = String_GetWeaselString(Apollo.GetString("HawtScrollingBattleText_EPGained"), nAmount)
 
 	self:RequestShowTextFloater(eMessageType, unitToAttachTo, strFormatted, tTextOption, 0, tContent)
 end
 
-function HawtBattleText:OnPathExperienceGained( nAmount, strText )
+function HawtScrollingBattleText:OnPathExperienceGained( nAmount, strText )
 	if not Apollo.GetConsoleVariable("ui.showCombatFloater") then
 		return
 	end
 
 	local eMessageType = LuaEnumMessageType.PathXp
 	local unitToAttachTo = GameLib.GetControlledUnit()
-	local strFormatted = String_GetWeaselString(Apollo.GetString("FloatText_PathXP"), nAmount)
+	local strFormatted = String_GetWeaselString(Apollo.GetString("HawtScrollingBattleText_PathXP"), nAmount)
 
 	local tContent =
 	{
@@ -571,14 +534,14 @@ function HawtBattleText:OnPathExperienceGained( nAmount, strText )
 end
 
 ---------------------------------------------------------------------------------------------------
-function HawtBattleText:OnFactionFloater(unitTarget, strMessage, nAmount, strFactionName, idFaction) -- Reputation Floater
+function HawtScrollingBattleText:OnFactionFloater(unitTarget, strMessage, nAmount, strFactionName, idFaction) -- Reputation Floater
 	if not Apollo.GetConsoleVariable("ui.showCombatFloater") or strFactionName == nil or nAmount < 1 then
 		return
 	end
 
 	local eMessageType = LuaEnumMessageType.ReputationIncrease
 	local unitToAttachTo = unitTarget or GameLib.GetControlledUnit()
-	local strFormatted = String_GetWeaselString(Apollo.GetString("FloatText_Rep"), nAmount, strFactionName)
+	local strFormatted = String_GetWeaselString(Apollo.GetString("HawtScrollingBattleText_Rep"), nAmount, strFactionName)
 
 	local tContent = {}
 	tContent.eType = LuaEnumMessageType.ReputationIncrease
@@ -608,7 +571,7 @@ function HawtBattleText:OnFactionFloater(unitTarget, strMessage, nAmount, strFac
 end
 
 ---------------------------------------------------------------------------------------------------
-function HawtBattleText:OnLootedMoney(monLooted) -- karCurrencyTypeToString filters to most alternate currencies but Money. Money displays in LootNotificationWindow.
+function HawtScrollingBattleText:OnLootedMoney(monLooted) -- karCurrencyTypeToString filters to most alternate currencies but Money. Money displays in LootNotificationWindow.
 	if not monLooted then
 		return
 	end
@@ -630,7 +593,7 @@ function HawtBattleText:OnLootedMoney(monLooted) -- karCurrencyTypeToString filt
 
 	-- TODO
 	local eMessageType = LuaEnumMessageType.AlternateCurrency
-	local strFormatted = String_GetWeaselString(Apollo.GetString("FloatText_AlternateMoney"), monLooted:GetAmount(), strCurrencyType)
+	local strFormatted = String_GetWeaselString(Apollo.GetString("HawtScrollingBattleText_AlternateMoney"), monLooted:GetAmount(), strCurrencyType)
 
 	local tTextOption = self:GetDefaultTextOption()
 	tTextOption.fScale = 1.0
@@ -659,7 +622,7 @@ function HawtBattleText:OnLootedMoney(monLooted) -- karCurrencyTypeToString filt
 end
 
 ---------------------------------------------------------------------------------------------------
-function HawtBattleText:OnTradeSkillFloater(unitTarget, strMessage)
+function HawtScrollingBattleText:OnTradeSkillFloater(unitTarget, strMessage)
 	if not Apollo.GetConsoleVariable("ui.showCombatFloater") then
 		return
 	end
@@ -697,7 +660,7 @@ function HawtBattleText:OnTradeSkillFloater(unitTarget, strMessage)
 end
 
 ---------------------------------------------------------------------------------------------------
-function HawtBattleText:OnMiss( unitCaster, unitTarget, eMissType )
+function HawtScrollingBattleText:OnMiss( unitCaster, unitTarget, eMissType )
 	if unitTarget == nil or not Apollo.GetConsoleVariable("ui.showCombatFloater") then
 		return
 	end
@@ -741,7 +704,7 @@ function HawtBattleText:OnMiss( unitCaster, unitTarget, eMissType )
 end
 
 ---------------------------------------------------------------------------------------------------
-function HawtBattleText:OnDamageOrHealing( unitCaster, unitTarget, eDamageType, nDamage, nShieldDamaged, nAbsorptionAmount, bCritical )
+function HawtScrollingBattleText:OnDamageOrHealing( unitCaster, unitTarget, eDamageType, nDamage, nShieldDamaged, nAbsorptionAmount, bCritical )
 	if unitTarget == nil or not Apollo.GetConsoleVariable("ui.showCombatFloater") or nDamage == nil then
 		return
 	end
@@ -754,9 +717,32 @@ function HawtBattleText:OnDamageOrHealing( unitCaster, unitTarget, eDamageType, 
 
 	-- NOTE: This needs to be changed if we're ever planning to display shield and normal damage in different formats.
 	-- NOTE: Right now, we're just telling the player the amount of damage they did and not the specific type to keep things neat
+	local nTotalDamage = nDamage
+	if type(nShieldDamaged) == "number" and nShieldDamaged > 0 then
+		nTotalDamage = nDamage + nShieldDamaged
+	end
 
 	local tTextOption = self:GetDefaultTextOption()
 	local tTextOptionAbsorb = self:GetDefaultTextOption()
+
+	if type(nAbsorptionAmount) == "number" and nAbsorptionAmount > 0 then --absorption is its own separate type
+		tTextOptionAbsorb.fScale = 1.0
+		tTextOptionAbsorb.fDuration = 2
+		tTextOptionAbsorb.eCollisionMode = CombatFloater.CodeEnumFloaterCollisionMode.IgnoreCollision --Horizontal
+		tTextOptionAbsorb.eLocation = CombatFloater.CodeEnumFloaterLocation.Chest
+		tTextOptionAbsorb.fOffset = -0.8
+		tTextOptionAbsorb.fOffsetDirection = 0
+		tTextOptionAbsorb.arFrames={}
+
+		tTextOptionAbsorb.arFrames =
+		{
+			[1] = {fScale = 1.1,	fTime = 0,		fAlpha = 1.0,	nColor = 0xb0b0b0,},
+			[2] = {fScale = 0.7,	fTime = 0.1,	fAlpha = 1.0,},
+			[3] = {					fTime = 0.3,	},
+			[4] = {fScale = 0.7,	fTime = 0.8,	fAlpha = 1.0,},
+			[5] = {					fTime = 0.9,	fAlpha = 0.0,},
+		}
+	end
 
 	local bHeal = eDamageType == GameLib.CodeEnumDamageType.Heal or eDamageType == GameLib.CodeEnumDamageType.HealShields
 	local nBaseColor = 0x00ffff
@@ -768,7 +754,6 @@ function HawtBattleText:OnDamageOrHealing( unitCaster, unitTarget, eDamageType, 
 	tTextOption.eCollisionMode = CombatFloater.CodeEnumFloaterCollisionMode.IgnoreCollision
 	tTextOption.eLocation = CombatFloater.CodeEnumFloaterLocation.Chest
 
-	--[[
 	if not bHeal and bCritical == true then -- Crit not vuln
 		nBaseColor = 0xfffb93
 		fMaxSize = 1.0
@@ -787,73 +772,52 @@ function HawtBattleText:OnDamageOrHealing( unitCaster, unitTarget, eDamageType, 
 			nBaseColor = 0xe5feff
 		end
 	end
-	]]--
-	
-	--------------------------
-	--Begin Setup ZZBattleText
-	--------------------------
-	
-	local zsColor = self.userPreferences.zsDmgDeltColor
-	local zsColorOut = self.userPreferences.zsDmgDeltColor_Out
-	local zsCombatFloatText = nDamage
-	
-	local zsVelDirStart = 135
-	local zsTextDegreesStart = 90
-	local zsTextOffset = 7
-	local zsVelDur = .5
-	local zsDisplaySpeed = self.userPreferences.zsDmgDisplaySpeed
-	
-	if type(nShieldDamaged) == "number" and nShieldDamaged > 0 then
-			zsCombatFloatText = nShieldDamaged.. "(Shield)"
-			zsColor = self.userPreferences.zsDmgShieldIncColor
-			zsColorOut = self.userPreferences.zsDmgShieldIncColor_Out
-		elseif bCritical then
-			zsVelDur = 1
-			zsVelDirStart = 0
-			zsTextDegreesStart = 0
-			zsTextOffset = 2
-			zsCombatFloatText = nDamage .. "(Crit)"
-			zsColor = self.userPreferences.zsDmgCritDeltColor
-			zsColorOut = self.userPreferences.zsDmgCritDeltColor_Out
-			zsDisplaySpeed = self.userPreferences.zsCritDisplaySpeed
-		elseif bHeal then
-			zsCombatFloatText = "+" .. nDamage .. "+"
-			zsColor = self.userPreferences.zsHealIncColor
-			zsColorOut = self.userPreferences.zsHealIncColor_Out_Out
-		elseif type(nAbsorptionAmount) == "number" and nAbsorptionAmount > 0 then
-			zsCombatFloatText = nAbsorptionAmount.. "(Absorbed)"
-			zsColor = self.userPreferences.zsDmgShieldIncColor
-			zsColorOut = self.userPreferences.zsDmgShieldIncColor_Out
+
+	-- determine offset direction; re-randomize if too close to the last
+	local nOffset = math.random(0, 360)
+	if nOffset <= (self.fLastOffset + 50) and nOffset >= (self.fLastOffset - 50) then
+		nOffset = math.random(0, 360)
 	end
-	
-	--------------------------
-	--End Setup ZZBattleText
-	--------------------------
-	tTextOption.bUseScreenPos = true
-	--tTextOption.fVelocityDirection = zsVelDirStart
-	tTextOption.fOffsetDirection = 90--zsTextDegreesStart 
-	tTextOption.fOffset = 100--zsTextOffset
+	self.fLastOffset = nOffset
+
+	-- set offset
+	tTextOption.fOffsetDirection = nOffset
+	tTextOption.fOffset = math.random(10, 80)/100
 
 	-- scale and movement
-	--[[tTextOption.arFrames = 
+	tTextOption.arFrames =
 	{
-	[1] = {								fTime = 0, fVelocityDirection = zsVelDirStart,	fVelocityMagnitude = 10,},
-	[2] = {fScale = (fMaxSize) * 1.75,	fTime = 0,									nColor = zsColor  ,	},
-	[3] = {fScale = fMaxSize,	fTime = zsDisplaySpeed,									nColor = zsColorOut ,	},
-	[4] = {								fTime = zsVelDur,	fVelocityDirection = zsVelDirStart,	fVelocityMagnitude = .2,},
-	[5] = {fScale = fMaxSize,			fTime = zsDisplaySpeed,				fAlpha = 1.0,},
-	[6] = {								fTime = fMaxDuration,	fAlpha = 0.0,},
+		[1] = {fScale = (fMaxSize) * 1.75,	fTime = 0,									nColor = 0xffffff,	},
+		[2] = {fScale = fMaxSize,			fTime = .15,			fAlpha = 1.0,},--	nColor = nBaseColor,},
+		[3] = {fScale = fMaxSize,			fTime = .3,									nColor = nBaseColor,},
+		[4] = {fScale = fMaxSize,			fTime = .5,				fAlpha = 1.0,},
+		[5] = {								fTime = fMaxDuration,	fAlpha = 0.0,},
+	}
 
-	}]]
-		if not bHeal then
+	if not bHeal then
 		self.fLastDamageTime = GameLib.GetGameTime()
 	end
 
-	CombatFloater.ShowTextFloater( unitTarget, zsCombatFloatText, tTextOption )
+	if type(nAbsorptionAmount) == "number" and nAbsorptionAmount > 0 then -- secondary "if" so we don't see absorption and "0"
+		CombatFloater.ShowTextFloater( unitTarget, String_GetWeaselString(Apollo.GetString("HawtScrollingBattleText_Absorbed"), nAbsorptionAmount), tTextOptionAbsorb )
+
+		if nTotalDamage > 0 then
+			tTextOption.eCollisionMode = CombatFloater.CodeEnumFloaterCollisionMode.Vertical
+			if bHeal then
+				CombatFloater.ShowTextFloater( unitTarget, String_GetWeaselString(Apollo.GetString("HawtScrollingBattleText_PlusValue"), nTotalDamage), tTextOption )
+			else
+				CombatFloater.ShowTextFloater( unitTarget, nTotalDamage, tTextOption )
+			end
+		end
+	elseif bHeal then
+		CombatFloater.ShowTextFloater( unitTarget, String_GetWeaselString(Apollo.GetString("HawtScrollingBattleText_PlusValue"), nTotalDamage), tTextOption ) -- we show "0" when there's no absorption
+	else
+		CombatFloater.ShowTextFloater( unitTarget, nTotalDamage, tTextOption )
+	end
 end
 
 ------------------------------------------------------------------
-function HawtBattleText:OnPlayerDamageOrHealing(unitPlayer, eDamageType, nDamage, nShieldDamaged, nAbsorptionAmount, bCritical)
+function HawtScrollingBattleText:OnPlayerDamageOrHealing(unitPlayer, eDamageType, nDamage, nShieldDamaged, nAbsorptionAmount, bCritical)
 	if unitPlayer == nil or not Apollo.GetConsoleVariable("ui.showCombatFloater") then
 		return
 	end
@@ -872,7 +836,27 @@ function HawtBattleText:OnPlayerDamageOrHealing(unitPlayer, eDamageType, nDamage
 
 	local nStallTime = .3
 
-	
+	if type(nAbsorptionAmount) == "number" and nAbsorptionAmount > 0 then --absorption is its own separate type
+		tTextOptionAbsorb.nColor = 0xf8f3d7
+		tTextOptionAbsorb.eCollisionMode = CombatFloater.CodeEnumFloaterCollisionMode.Horizontal --Vertical--Horizontal  --IgnoreCollision
+		tTextOptionAbsorb.eLocation = CombatFloater.CodeEnumFloaterLocation.Chest
+		tTextOptionAbsorb.fOffset = -0.4
+		tTextOptionAbsorb.fOffsetDirection = 0--125
+
+		-- scale and movement
+		tTextOptionAbsorb.arFrames =
+		{
+			[1] = {fScale = 1.1,	fTime = 0,									fVelocityDirection = 0,		fVelocityMagnitude = 0,},
+			[2] = {fScale = 0.7,	fTime = 0.05,				fAlpha = 1.0,},
+			[3] = {fScale = 0.7,	fTime = .2 + nStallTime,	fAlpha = 1.0,	fVelocityDirection = 180,	fVelocityMagnitude = 3,},
+			[4] = {fScale = 0.7,	fTime = .45 + nStallTime,	fAlpha = 0.2,	fVelocityDirection = 180,},
+		}
+	end
+
+	if type(nShieldDamaged) == "number" and nShieldDamaged > 0 then
+		nDamage = nDamage + nShieldDamaged
+	end
+
 	local bHeal = eDamageType == GameLib.CodeEnumDamageType.Heal or eDamageType == GameLib.CodeEnumDamageType.HealShields
 	local nBaseColor = 0xff6d6d
 	local nHighlightColor = 0xff6d6d
@@ -882,64 +866,68 @@ function HawtBattleText:OnPlayerDamageOrHealing(unitPlayer, eDamageType, nDamage
 	local fMaxDuration = .55
 	local eCollisionMode = CombatFloater.CodeEnumFloaterCollisionMode.Horizontal
 
-	--------------------------
-	--Begin Setup ZZBattleText
-	--------------------------
-	
-	local zsColor = self.userPreferences.zsDmgIncColor
-	local zsColorOut = self.userPreferences.zsDmgIncColor_Out
-	local zsCombatFloatText = nDamage
-	
-	local zsVelDirStart = 225
-	local zsTextDegreesStart = 270
-	local zsTextOffset = 7
-	
-	if type(nShieldDamaged) == "number" and nShieldDamaged > 0 then
-			zsCombatFloatText = nDamage .. " + "  .. nShieldDamaged.. "(Shield)"
-			--zsColor = self.userPreferences.zsDmgShieldIncColor
-			--zsColorOut = self.userPreferences.zsDmgShieldIncColor_Out
-		elseif bCritical then
-			zsCombatFloatText = nDamage .. "(Crit)"
-			zsColor = self.userPreferences.zsDmgCritIncColor
-			zsColorOut = self.userPreferences.zsDmgCritIncColor_Out_Out
-		elseif bHeal then
-			zsVelDirStart = 180
-			zsTextDegreesStart = 180
-			zsTextOffset = 3
-			zsCombatFloatText = "+" .. nDamage .. "+"
-			zsColor = self.userPreferences.zsHealIncColor
-			zsColorOut = self.userPreferences.zsHealIncColor_Out_Out
-		elseif type(nAbsorptionAmount) == "number" and nAbsorptionAmount > 0 then
-			zsCombatFloatText = nAbsorptionAmount.. "(Absorbed)"
-			zsColor = self.userPreferences.zsDmgShieldIncColor
-			zsColorOut = self.userPreferences.zsDmgShieldIncColor_Out
+	if eDamageType == GameLib.CodeEnumDamageType.Heal then -- healing params
+		nBaseColor = 0xb0ff6a
+		nHighlightColor = 0xb0ff6a
+		fOffsetAmount = -0.5
+
+		if bCritical then
+			fMaxSize = 1.2
+			nBaseColor = 0xc6ff94
+			nHighlightColor = 0xc6ff94
+			fMaxDuration = .75
+		end
+
+	elseif eDamageType == GameLib.CodeEnumDamageType.HealShields then -- healing shields params
+		nBaseColor = 0x6afff3
+		fOffsetAmount = -0.5
+		nHighlightColor = 0x6afff3
+
+		if bCritical then
+			fMaxSize = 1.2
+			nBaseColor = 0xa6fff8
+			nHighlightColor = 0xFFFFFF
+			fMaxDuration = .75
+		end
+
+	else -- regular old damage (player)
+		fOffsetAmount = -0.5
+
+		if bCritical then
+			fMaxSize = 1.2
+			nBaseColor = 0xffab3d
+			nHighlightColor = 0xFFFFFF
+			fMaxDuration = .75
+		end
 	end
-	
-	--------------------------
-	--End Setup ZZBattleText
-	--------------------------
-	
-	tTextOption.fVelocityDirection = zsVelDirStart
-	tTextOption.fOffsetDirection = zsTextDegreesStart 
-	tTextOption.fOffset = zsTextOffset
+
+	tTextOptionAbsorb.fOffset = fOffsetAmount
+	tTextOption.eCollisionMode = eCollisionMode
+	tTextOption.eLocation = CombatFloater.CodeEnumFloaterLocation.Chest
 
 	-- scale and movement
-	tTextOption.arFrames = 
+	tTextOption.arFrames =
 	{
-	[1] = {								fTime = 0, fVelocityDirection = zsVelDirStart,	fVelocityMagnitude = 10,},
-	[2] = {fScale = (fMaxSize) * 1.25,	fTime = 0,									nColor = zsColor,	},
-	[3] = {fScale = fMaxSize,	fTime = .3,									nColor = zsColorOut,	},
-	[4] = {								fTime = .5,	fVelocityDirection = zsVelDirStart,	fVelocityMagnitude = .2,},
-	[5] = {fScale = fMaxSize,			fTime = .5,				fAlpha = 1.0,},
-	[6] = {								fTime = fMaxDuration,	fAlpha = 0.0,},
+		[1] = {fScale = fMaxSize * .75,	fTime = 0,									nColor = nHighlightColor,	fVelocityDirection = 0,		fVelocityMagnitude = 0,},
+		[2] = {fScale = fMaxSize * 1.5,	fTime = 0.05,								nColor = nHighlightColor,	fVelocityDirection = 0,		fVelocityMagnitude = 0,},
+		[3] = {fScale = fMaxSize,		fTime = 0.1,				fAlpha = 1.0,	nColor = nBaseColor,},
+		[4] = {							fTime = 0.3 + nStallTime,	fAlpha = 1.0,								fVelocityDirection = 180,	fVelocityMagnitude = 3,},
+		[5] = {							fTime = 0.65 + nStallTime,	fAlpha = 0.2,								fVelocityDirection = 180,},
 	}
 
-	CombatFloater.ShowTextFloater( unitPlayer, zsCombatFloatText, tTextOption )
+	if type(nAbsorptionAmount) == "number" and nAbsorptionAmount > 0 then -- secondary "if" so we don't see absorption and "0"
+		CombatFloater.ShowTextFloater( unitPlayer, String_GetWeaselString(Apollo.GetString("HawtScrollingBattleText_Absorbed"), nAbsorptionAmount), tTextOptionAbsorb )
+	end
 
+	if nDamage > 0 and bHeal then
+		CombatFloater.ShowTextFloater( unitPlayer, String_GetWeaselString(Apollo.GetString("HawtScrollingBattleText_PlusValue"), nDamage), tTextOption )
+	elseif nDamage > 0 then
+		CombatFloater.ShowTextFloater( unitPlayer, nDamage, tTextOption )
+	end
 end
 
 ------------------------------------------------------------------
-function HawtBattleText:OnCombatLogCCState(tEventArgs)
+function HawtScrollingBattleText:OnCombatLogCCState(tEventArgs)
 	if not Apollo.GetConsoleVariable("ui.showCombatFloater") then
 		return
 	end
@@ -1008,13 +996,13 @@ function HawtBattleText:OnCombatLogCCState(tEventArgs)
 			return
 		end
 	elseif tEventArgs.eResult == CombatFloater.CodeEnumCCStateApplyRulesResult.Target_Immune then
-		strMessage = Apollo.GetString("FloatText_Immune")
+		strMessage = Apollo.GetString("HawtScrollingBattleText_Immune")
 	elseif tEventArgs.eResult == CombatFloater.CodeEnumCCStateApplyRulesResult.Target_InfiniteInterruptArmor then
-		strMessage = Apollo.GetString("FloatText_InfInterruptArmor")
+		strMessage = Apollo.GetString("HawtScrollingBattleText_InfInterruptArmor")
 	elseif tEventArgs.eResult == CombatFloater.CodeEnumCCStateApplyRulesResult.Target_InterruptArmorReduced then -- use with interruptArmorHit
-		strMessage = String_GetWeaselString(Apollo.GetString("FloatText_InterruptArmor"), tEventArgs.nInterruptArmorHit)
+		strMessage = String_GetWeaselString(Apollo.GetString("HawtScrollingBattleText_InterruptArmor"), tEventArgs.nInterruptArmorHit)
 	elseif tEventArgs.eResult == CombatFloater.CodeEnumCCStateApplyRulesResult.DiminishingReturns_TriggerCap and tEventArgs.strTriggerCapCategory ~= nil then
-		strMessage = Apollo.GetString("FloatText_CC_DiminishingReturns_TriggerCap").." "..tEventArgs.strTriggerCapCategory
+		strMessage = Apollo.GetString("HawtScrollingBattleText_CC_DiminishingReturns_TriggerCap").." "..tEventArgs.strTriggerCapCategory
 	else -- all invalid messages
 		return
 	end
@@ -1044,7 +1032,7 @@ function HawtBattleText:OnCombatLogCCState(tEventArgs)
 end
 
 ------------------------------------------------------------------
-function HawtBattleText:OnCombatLogCCStatePlayer(tEventArgs)
+function HawtScrollingBattleText:OnCombatLogCCStatePlayer(tEventArgs)
 	if not Apollo.GetConsoleVariable("ui.showCombatFloater") then
 		return
 	end
@@ -1105,11 +1093,11 @@ function HawtBattleText:OnCombatLogCCStatePlayer(tEventArgs)
 			return
 		end
 	elseif tEventArgs.eResult == CombatFloater.CodeEnumCCStateApplyRulesResult.Target_Immune then
-		strMessage = Apollo.GetString("FloatText_Immune")
+		strMessage = Apollo.GetString("HawtScrollingBattleText_Immune")
 	elseif tEventArgs.eResult == CombatFloater.CodeEnumCCStateApplyRulesResult.Target_InfiniteInterruptArmor then
-		strMessage = Apollo.GetString("FloatText_InfInterruptArmor")
+		strMessage = Apollo.GetString("HawtScrollingBattleText_InfInterruptArmor")
 	elseif tEventArgs.eResult == CombatFloater.CodeEnumCCStateApplyRulesResult.Target_InterruptArmorReduced then -- use with interruptArmorHit
-		strMessage = String_GetWeaselString(Apollo.GetString("FloatText_InterruptArmor"), tEventArgs.nInterruptArmorHit)
+		strMessage = String_GetWeaselString(Apollo.GetString("HawtScrollingBattleText_InterruptArmor"), tEventArgs.nInterruptArmorHit)
 	else -- all invalid messages
 		return
 	end
@@ -1142,7 +1130,7 @@ end
 
 ------------------------------------------------------------------
 -- send show text request to message manager with a delay in milliseconds
-function HawtBattleText:RequestShowTextFloater( eMessageType, unitTarget, strText, tTextOption, fDelay, tContent ) -- addtn'l parameters for XP/rep
+function HawtScrollingBattleText:RequestShowTextFloater( eMessageType, unitTarget, strText, tTextOption, fDelay, tContent ) -- addtn'l parameters for XP/rep
 	local tParams =
 	{
 		unitTarget 	= unitTarget,
@@ -1181,10 +1169,125 @@ function HawtBattleText:RequestShowTextFloater( eMessageType, unitTarget, strTex
 end
 
 ------------------------------------------------------------------
-function HawtBattleText:OnDelayedFloatTextTimer()
+function HawtScrollingBattleText:OnDelayedFloatTextTimer()
 	local tParams = self.tDelayedFloatTextQueue:Pop()
 	Event_FireGenericEvent("Float_RequestShowTextFloater", tParams.eMessageType, tParams, tParams.tContent) -- TODO: Event!!!!
 end
 
-local HawtBattleTextInst = HawtBattleText:new()
-HawtBattleTextInst:Init()
+local HawtScrollingBattleTextInst = HawtScrollingBattleText:new()
+HawtScrollingBattleTextInst:Init()
+
+--------------------------------
+--- Hawt Battle Text
+--------------------------------
+
+local tAppData = nil
+
+function HawtScrollingBattleText:GetDefaultAppData()
+
+	local tData = {
+		tUserPrefs = {
+			bScrollFromTarget = false
+		},
+		tTextPrefs = {
+			tIncoming = {
+				fDirection = 0,
+				fOffset = 0,
+				fDisplayTime = 0,
+				fVelocityDirection = 0,
+				fVelocityMagnitude = 0,
+				bCombineShield = false,
+				bVibrateOnCrit = true,
+				tDamage = {
+					tN = {
+						strFont = "CRB_FloaterHuge_O",
+						nColorStart = 0xCC66FF,
+						nColorEnd = 0xCC9900,
+						strFormat = "%s"
+					},
+					tA = {
+						strFont = "CRB_FloaterHuge_O",
+						nColorStart = 0x0000FF,
+						nColorEnd = 0x6666FF,
+						strFormat = "%s (Absorb)"
+					},
+					tC = {
+						strFont = "CRB_FloaterHuge_O",
+						nColorStart = 0xCC0000,
+						nColorEnd = 0xD63333,
+						strFormat = "%s (Crit)"
+					},
+					tS = {
+						strFont = "CRB_FloaterHuge_O",
+						nColorStart = 0x0000FF,
+						nColorEnd = 0x6666FF,
+						strFormat = "%s (Shield)"
+					}
+				},
+				tHealing = {
+					tN = {
+						strFont = "CRB_FloaterHuge_O",
+						nColorStart = 0x00CC00,
+						nColorEnd = 0x4DDB4D,
+						strFormat = "+ %s"
+					},
+					tC = {
+						strFont = "CRB_FloaterHuge_O",
+						nColorStart = 0x00CC00,
+						nColorEnd = 0x4DDB4D,
+						strFormat = "+ %s (Crit)"
+					}
+				}
+			},
+			tOutgoing = {
+		}
+	}
+
+	return tData
+end
+
+---------------
+--- Utils
+---------------
+
+function tableLength(T)
+	local count = 0
+	for _ in pairs(T) do count = count +1 end
+	return count
+end
+
+function table.removekey(table, key)
+    local element = table[key]
+    table[key] = nil
+    return element
+end
+
+-----------------
+--- Save Restore
+-----------------
+function EpiCrit:OnSave(eType)
+  -- eType is one of:
+  -- GameLib.CodeEnumAddonSaveLevel.General
+  -- GameLib.CodeEnumAddonSaveLevel.Account
+  -- GameLib.CodeEnumAddonSaveLevel.Realm
+  -- GameLib.CodeEnumAddonSaveLevel.Character
+ 
+  if eType == GameLib.CodeEnumAddonSaveLevel.Character then
+    return tAppData
+  end
+end
+ 
+function EpiCrit:OnRestore(eType, tSavedData)
+if tSavedData == nil or tableLength(tSavedData) <= 0 then
+	tSavedData = self:GetDefaultAppData()
+end
+  if eType == GameLib.CodeEnumAddonSaveLevel.Character then
+    for k,v in pairs(tSavedData) do
+      tAppData[k] = v
+    end
+  end
+end
+
+
+
+
