@@ -83,6 +83,9 @@ function HawtScrollingBattleText:Initialize()
 	self.fLastOffset = 0
 
 	self.bSpellErrorMessages = g_InterfaceOptions.Carbine.bSpellErrorMessages
+	
+	if tLocalAppData == nil then tLocalAppData = self:GetDefaultAppData() end
+	SendVarToRover("appdata_hawt", tLocalAppData)
 end
 
 function HawtScrollingBattleText:OnOptionsUpdated()
@@ -714,106 +717,51 @@ function HawtScrollingBattleText:OnDamageOrHealing( unitCaster, unitTarget, eDam
 		self:OnPlayerDamageOrHealing( unitTarget, eDamageType, nDamage, nShieldDamaged, nAbsorptionAmount, bCritical )
 		return
 	end
-
-	-- NOTE: This needs to be changed if we're ever planning to display shield and normal damage in different formats.
-	-- NOTE: Right now, we're just telling the player the amount of damage they did and not the specific type to keep things neat
+	
+	--[[ IF COMBINING SHIELD DAMAGE DO
 	local nTotalDamage = nDamage
 	if type(nShieldDamaged) == "number" and nShieldDamaged > 0 then
 		nTotalDamage = nDamage + nShieldDamaged
 	end
+	]]
 
 	local tTextOption = self:GetDefaultTextOption()
-	local tTextOptionAbsorb = self:GetDefaultTextOption()
-
-	if type(nAbsorptionAmount) == "number" and nAbsorptionAmount > 0 then --absorption is its own separate type
-		tTextOptionAbsorb.fScale = 1.0
-		tTextOptionAbsorb.fDuration = 2
-		tTextOptionAbsorb.eCollisionMode = CombatFloater.CodeEnumFloaterCollisionMode.IgnoreCollision --Horizontal
-		tTextOptionAbsorb.eLocation = CombatFloater.CodeEnumFloaterLocation.Chest
-		tTextOptionAbsorb.fOffset = -0.8
-		tTextOptionAbsorb.fOffsetDirection = 0
-		tTextOptionAbsorb.arFrames={}
-
-		tTextOptionAbsorb.arFrames =
-		{
-			[1] = {fScale = 1.1,	fTime = 0,		fAlpha = 1.0,	nColor = 0xb0b0b0,},
-			[2] = {fScale = 0.7,	fTime = 0.1,	fAlpha = 1.0,},
-			[3] = {					fTime = 0.3,	},
-			[4] = {fScale = 0.7,	fTime = 0.8,	fAlpha = 1.0,},
-			[5] = {					fTime = 0.9,	fAlpha = 0.0,},
-		}
-	end
-
-	local bHeal = eDamageType == GameLib.CodeEnumDamageType.Heal or eDamageType == GameLib.CodeEnumDamageType.HealShields
-	local nBaseColor = 0x00ffff
-	local fMaxSize = 0.8
-	local nOffsetDirection = 95
-	local fMaxDuration = 0.7
-
-	tTextOption.strFontFace = "CRB_FloaterHuge_O"
-	tTextOption.eCollisionMode = CombatFloater.CodeEnumFloaterCollisionMode.IgnoreCollision
+	
+	-- Scale
+	local fStartScale = tLocalAppData.tTextPrefs.tOutgoing.tDamage.fStartScale
+	local fEndScaleMultiplier = tLocalAppData.tTextPrefs.tOutgoing.tDamage.fEndScaleMultiplier
+	-- Move
+	local velocityDirection = tLocalAppData.tTextPrefs.tOutgoing.tDamage.fVelocityDirection
+	local velocityMagnitude = tLocalAppData.tTextPrefs.tOutgoing.tDamage.fVelocityMagnitude
+	-- Color
+	local nColorStart = tLocalAppData.tTextPrefs.tOutgoing.tDamage.tN.nColorStart
+	local nColorEnd = tLocalAppData.tTextPrefs.tOutgoing.tDamage.tN.nColorEnd
+	-- Time
+	local fDisplayTime = tLocalAppData.tTextPrefs.tOutgoing.tDamage.fDisplayTime
+	local fVelocityTime = .5
+	-- Set Text Options
+	tTextOption.eCollisionMode = CombatFloater.CodeEnumFloaterCollisionMode.Vertical
 	tTextOption.eLocation = CombatFloater.CodeEnumFloaterLocation.Chest
-
-	if not bHeal and bCritical == true then -- Crit not vuln
-		nBaseColor = 0xfffb93
-		fMaxSize = 1.0
-	elseif not bHeal and (unitTarget:IsInCCState( Unit.CodeEnumCCState.Vulnerability ) or eDamageType == knTestingVulnerable ) then -- vuln not crit
-		nBaseColor = 0xf5a2ff
-	else -- normal damage
-		if eDamageType == GameLib.CodeEnumDamageType.Heal then -- healing params
-			nBaseColor = bCritical and 0xcdffa0 or 0xb0ff6a
-			fMaxSize = bCritical and 0.9 or 0.7
-
-		elseif eDamageType == GameLib.CodeEnumDamageType.HealShields then -- healing shields params
-			nBaseColor = bCritical and 0xc9fffb or 0x6afff3
-			fMaxSize = bCritical and 0.9 or 0.7
-
-		else -- regular target damage params
-			nBaseColor = 0xe5feff
-		end
-	end
-
-	-- determine offset direction; re-randomize if too close to the last
-	local nOffset = math.random(0, 360)
-	if nOffset <= (self.fLastOffset + 50) and nOffset >= (self.fLastOffset - 50) then
-		nOffset = math.random(0, 360)
-	end
-	self.fLastOffset = nOffset
-
-	-- set offset
-	tTextOption.fOffsetDirection = nOffset
-	tTextOption.fOffset = math.random(10, 80)/100
-
-	-- scale and movement
-	tTextOption.arFrames =
+	tTextOption.fVelocityDirection = fVelocityDirection
+	tTextOption.fOffsetDirection = 90 
+	tTextOption.fOffset = 7
+	--
+	
+	tTextOption.arFrames = 
 	{
-		[1] = {fScale = (fMaxSize) * 1.75,	fTime = 0,									nColor = 0xffffff,	},
-		[2] = {fScale = fMaxSize,			fTime = .15,			fAlpha = 1.0,},--	nColor = nBaseColor,},
-		[3] = {fScale = fMaxSize,			fTime = .3,									nColor = nBaseColor,},
-		[4] = {fScale = fMaxSize,			fTime = .5,				fAlpha = 1.0,},
-		[5] = {								fTime = fMaxDuration,	fAlpha = 0.0,},
+	[1] = {								fTime = 0, fVelocityDirection = velocityDirection,	fVelocityMagnitude = velocityMagnitude,},
+	[2] = {fScale = (fStartScale) * fEndScaleMultiplier,	fTime = 0,									nColor = nColorStart,	},
+	[3] = {fScale = fStartScale,	fTime = fDisplayTime,									nColor = nColorEnd,	},
+	[4] = {								fTime = fVelocityTime,	fVelocityDirection = velocityDirection, fVelocityMagnitude = .2,},
+	[5] = {fScale = fStartScale,			fTime = fDisplayTime,				fAlpha = 1.0,},
+	[6] = {								fTime = 0.7,	fAlpha = 0.0,},
 	}
 
 	if not bHeal then
 		self.fLastDamageTime = GameLib.GetGameTime()
 	end
-
-	if type(nAbsorptionAmount) == "number" and nAbsorptionAmount > 0 then -- secondary "if" so we don't see absorption and "0"
-		CombatFloater.ShowTextFloater( unitTarget, String_GetWeaselString(Apollo.GetString("HawtScrollingBattleText_Absorbed"), nAbsorptionAmount), tTextOptionAbsorb )
-
-		if nTotalDamage > 0 then
-			tTextOption.eCollisionMode = CombatFloater.CodeEnumFloaterCollisionMode.Vertical
-			if bHeal then
-				CombatFloater.ShowTextFloater( unitTarget, String_GetWeaselString(Apollo.GetString("HawtScrollingBattleText_PlusValue"), nTotalDamage), tTextOption )
-			else
-				CombatFloater.ShowTextFloater( unitTarget, nTotalDamage, tTextOption )
-			end
-		end
-	elseif bHeal then
-		CombatFloater.ShowTextFloater( unitTarget, String_GetWeaselString(Apollo.GetString("HawtScrollingBattleText_PlusValue"), nTotalDamage), tTextOption ) -- we show "0" when there's no absorption
-	else
-		CombatFloater.ShowTextFloater( unitTarget, nTotalDamage, tTextOption )
-	end
+	
+	CombatFloater.ShowTextFloater( GameLib.GetPlayerUnit(), nDamage, tTextOption )
 end
 
 ------------------------------------------------------------------
@@ -1181,7 +1129,7 @@ HawtScrollingBattleTextInst:Init()
 --- Hawt Battle Text
 --------------------------------
 
-local tAppData = nil
+local tLocalAppData = nil
 
 function HawtScrollingBattleText:GetDefaultAppData()
 
@@ -1191,14 +1139,19 @@ function HawtScrollingBattleText:GetDefaultAppData()
 		},
 		tTextPrefs = {
 			tIncoming = {
-				fDirection = 0,
-				fOffset = 0,
+		},
+			tOutgoing = {
+				tDamage = {
+				fStartScale = 1,
+				fEndScaleMultiplier = 1.5,
+				fDirection = 90,
+				fOffset = 10,
 				fDisplayTime = 0,
 				fVelocityDirection = 0,
-				fVelocityMagnitude = 0,
+				fVelocityMagnitude = 10,
+				fVelocityDisplayTime = .5,
 				bCombineShield = false,
 				bVibrateOnCrit = true,
-				tDamage = {
 					tN = {
 						strFont = "CRB_FloaterHuge_O",
 						nColorStart = 0xCC66FF,
@@ -1237,9 +1190,8 @@ function HawtScrollingBattleText:GetDefaultAppData()
 						nColorEnd = 0x4DDB4D,
 						strFormat = "+ %s (Crit)"
 					}
-				}
-			},
-			tOutgoing = {
+			   }
+			}
 		}
 	}
 
@@ -1265,7 +1217,7 @@ end
 -----------------
 --- Save Restore
 -----------------
-function EpiCrit:OnSave(eType)
+--[[function HawtScrollingBattleText:OnSave(eType)
   -- eType is one of:
   -- GameLib.CodeEnumAddonSaveLevel.General
   -- GameLib.CodeEnumAddonSaveLevel.Account
@@ -1277,7 +1229,7 @@ function EpiCrit:OnSave(eType)
   end
 end
  
-function EpiCrit:OnRestore(eType, tSavedData)
+function HawtScrollingBattleText:OnRestore(eType, tSavedData)
 if tSavedData == nil or tableLength(tSavedData) <= 0 then
 	tSavedData = self:GetDefaultAppData()
 end
@@ -1287,7 +1239,7 @@ end
     end
   end
 end
-
+]]
 
 
 
